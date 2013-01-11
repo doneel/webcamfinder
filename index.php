@@ -21,7 +21,8 @@ function startSearch(){
 	$first_guess = loadPreviousGuess(); //reads the guess from a file
         
         /* When we store an ip and look it up, we store it as a 'string', which looks like any word to the comptuer.
-         * But to be able to do even basic math on it, like figure out the next ip, they have to be numbers - you can't just add and subtract numbers from words.
+         * But to be able to do even basic math on it, like figure out the next ip, they have to be numbers -
+         *     you can't just add and subtract numbers from words.
          * This piece of code splits the ip into a vector of 4 numbers for the 4 parts of the ip.
          */
         $addressArray = explode('.', $first_guess);
@@ -37,9 +38,13 @@ function startSearch(){
            * The nextGuess method will use this figure out the next closest ip we haven't tried.
            */
 	$num = 1;
-
-        ob_start();// these ob_start and ob_flush should print out to the screen, but it's the browser's choice to display or not. When I test it, it takes ~30 seconds before it starts printing out.
-	while(checkIP($guess) === False){
+     
+        /*
+         * These ob_start and ob_flush should print out to the screen but it's the browser's choice to display or not.  
+         * When I test it, it takes ~30 seconds before it starts printing out.
+         */ 
+        ob_start()
+        while(checkIP($guess) === False){
 		echo $guess . "<br />";//display on the screen that we tried this address
                 
                 ob_end_flush();
@@ -50,7 +55,9 @@ function startSearch(){
 		$num = $num + 1;
 
 
-                /* There are only 255 * 255 possible ip addressess without changing the first two parts of the ip addresses. Since we wrap around, we'll get to all them in 255 * 255 iterations. 
+                /* There are only 255 * 255 possible ip addressess 
+                 *  without changing the first two parts of the ip addresses. 
+                 *  Since we wrap around, we'll get to all them in 255 * 255 iterations. 
                  */
                 if($num > 256*256) return;
 
@@ -65,24 +72,38 @@ function startSearch(){
 /*
  * function nextGuess
  *
- * We want to look at the ip's closest to our last known location, which means getting ips above and below our starting address.
+ * We want to look at the ip's closest to our last known location,
+ *   which means getting ips above and below our starting address.
  *
- * If you look above at how we use it, we pass in the starting guess and 'num', which gets incremented by 1 every time we try a new address.
+ * If you look above at how we use it, we pass in the starting guess and 'num',
+ *   which gets incremented by 1 every time we try a new address.
  * Next guess uses $num as an offset and gives the next closest but not-yet-tried ip to our starting guess.
  *
- * It alternates using ip's above and then an ip below the starting address by dedicating odd 'num' values to ips above and even 'num' values to ips below our starting guess.
+ * It alternates using ip's above and then an ip below the starting address by 
+ *   dedicating odd 'num' values to ips above and even 'num' values to ips below our starting guess.
  */
 function nextGuess($addressNums, $num){
 
           /* First, the even case. */
 	if($num % 2 === 0){
                 
-             /* We're going to use 'num' as an offset, so if $num = 4, then we'll move down 4 ip addresses. However since we only move down on even values, we need divide num by 2 so we don't skip all the odd values. i.e. we want the ips 1,2,3,4 below, not just 2 and 4 below even though we'll only reach this part of code when num is an even number. */
+             /* We're going to use 'num' as an offset, so if $num = 4, then we'll move down 4 ip addresses.
+              * However since we only move down on even values, we need divide num by 2 so we don't skip
+              *     all the odd values. i.e. we want the ips 1,2,3,4 below, not just 2 and 4 below even though 
+              *     we'll only reach this part of code when num is an even number. 
+              */
                 $num = ($num / 2); 		
 
-                /* If our starting guess is 70.33.13.2 and we want to try the ip 5 slots below us, we can't just subtract 5 from 2. This part of the code will do the carry over operation so we would get 70.33.12.254 instead.
-                 * When you see $addressNums[3], that means the last part '254' of the ip, and $addressNums[2] would be the 2nd to last part, the '12' or '13' most likely.
-                 * If the 2nd to last part of the ip hits 0 or 255, we wrap it around without changing the 2nd part of the ip, so it'll start with the very high numbers and decrease from there 
+                /* If our starting guess is 70.33.13.2 and we want to try the ip 5 slots below us, 
+                 *  we can't just subtract 5 from 2. 
+                 *  This part of the code will do the carry over operation so we would get 70.33.12.254 instead.
+                 * 
+                 * When you see $addressNums[3], that means the last part '254' of the ip, and $addressNums[2]
+                 *  would be the 2nd to last part, the '12' or '13' most likely.
+                 * 
+                 * If the 2nd to last part of the ip hits 0 or 255, 
+                 *  we wrap it around without changing the 2nd part of the ip, 
+                 *  so it'll start with the very high numbers and decrease from there 
                  * */ 
 		while($num > $addressNums[3]){
 			$num -= $addressNums[3];
@@ -101,8 +122,10 @@ function nextGuess($addressNums, $num){
 	else{
 		$num = round($num / 2); //Round the division result so we don't have half numbers from division.
 
-                /* Same idea as above. This is a type of 'saturated addition' where we're not going to let the last part of our ip address go above 255. If so, we bump up the 2nd to last portion of the ip and reset the last part to 0. 
-                 * */        
+                /* Same idea as above. 
+                 * This is a type of 'saturated addition' where we're not going to let the last part of our ip address 
+                 *  go above 255. If so, we bump up the 2nd to last portion of the ip and reset the last part to 0. 
+                 */        
 		while($num + $addressNums[3] > 255){
 			$num -= (255 - $addressNums[3]);
                         $addressNums[2]++;
@@ -116,8 +139,10 @@ function nextGuess($addressNums, $num){
 	}
 
         /* Since we were doing math on the values, I had them stored as a vector of numbers.
-         * We can't look up a website by a vector of numbers though, we need a 'string' or a list of characters to use as a web address, so this part just sticks all the numbers together with periods in between to make it a valid ip address.
-         * */
+         * We can't look up a website by a vector of numbers though, we need a 'string' or a list of characters to use 
+         *     as a web address, so this part just sticks all the numbers together with periods in between 
+         *     to make it a valid ip address.
+         */
 	$string = strval($addressNums[0]) . "." . strval($addressNums[1]) . "." . strval($addressNums[2]) . "." . strval($addressNums[3]);
 	
 	return $string;	
@@ -161,7 +186,9 @@ function writeKnownLocation($ip){
  */
 function checkIP($ip){
 
-        /* We can't open the page to figure out if it's the right one without logging in, so allow the html request to log in. */     
+     /* We can't open the page to figure out if it's the right one without logging in, 
+      *  so allow the html request to log in. 
+      */     
 	$username="johnoneel";
 	$password="18montana";
 
@@ -184,7 +211,8 @@ function checkIP($ip){
         /*
          * strpos will return the position of $needleText in $output.
          * If it can't find it anywhere, it will return 'False'.
-         * We don't care about the position, we just care that it's somewhere, so if strpos doesn't tell us 'False', then we return True to say that this is the right ip.
+         * We don't care about the position, we just care that it's somewhere, so if strpos doesn't tell us 'False', 
+         *     then we return True to say that this is the right ip.
          */
         if(strpos($output,$needleText) != False){
 		return True;
